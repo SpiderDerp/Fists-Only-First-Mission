@@ -7,23 +7,59 @@ public class Movement : MonoBehaviour
     Animator animator;
     private float speed = .01f;
 
-    private bool isAttacking = false;
-
+    private bool isAttacking;
     private int numClicks = 0;
     private float lastClickTime = 0;
+    private float comboDelay = 0.8f;
+    private float nextFireTime = 0f;
 
-    private float comboDelay = 1.2f;
+    private float cooldownTime = 0.8f;
+
     // Start is called before the first frame update
     void Start()
     {
         animator = GetComponent<Animator>();
         animator.SetBool("moving", false);
+        isAttacking = false;    
         
     }
 
     // Update is called once per frame
     void Update()
-    {
+    {   
+
+        if (animator.GetCurrentAnimatorStateInfo(0).normalizedTime > 0.7f && animator.GetCurrentAnimatorStateInfo(0).IsName("attack1")) {
+            animator.SetBool("attack1", false);
+        }
+
+        if (animator.GetCurrentAnimatorStateInfo(0).normalizedTime > 0.7f && animator.GetCurrentAnimatorStateInfo(0).IsName("attack2")) {
+            animator.SetBool("attack2", false);
+        }
+
+        if (animator.GetCurrentAnimatorStateInfo(0).normalizedTime > 0.7f && animator.GetCurrentAnimatorStateInfo(0).IsName("attack3")) {
+            animator.SetBool("attack3", false);
+            numClicks = 0;
+        }
+
+        if (Time.time - lastClickTime > comboDelay) {
+            numClicks = 0;
+        }
+
+        if (Time.time > nextFireTime) {
+            if (Input.GetKeyDown(KeyCode.P)) {
+                OnAttack();
+            }
+        }
+
+        if (animator.GetCurrentAnimatorStateInfo(0).IsName("attack1") || animator.GetCurrentAnimatorStateInfo(0).IsName("attack2") || animator.GetCurrentAnimatorStateInfo(0).IsName("attack3")) {
+            isAttacking = true;
+        } else {
+            isAttacking = false;
+        }
+
+        if (isAttacking) {
+            animator.SetBool("moving", false);
+        }
 
         //Movement using WASD
         if (!isAttacking) {
@@ -49,28 +85,6 @@ public class Movement : MonoBehaviour
             }
         }
 
-        if (Time.time - lastClickTime > comboDelay) {
-            numClicks = 0;
-            isAttacking = false;
-        }
-
-        if (Input.GetKey(KeyCode.P)) {
-            Debug.Log("attacking");
-            //player can attack upto three times
-            isAttacking = true;
-            lastClickTime = Time.time;
-            numClicks++;
-        
-
-            if (numClicks == 1) {
-                animator.SetTrigger("attack1");
-            }
-
-            numClicks = Mathf.Clamp(numClicks, 0, 3);
-            
-            
-        }
-
         //If no key is pressed, the player is not moving
         if (!Input.GetKey(KeyCode.W) && !Input.GetKey(KeyCode.S) && !Input.GetKey(KeyCode.A) && !Input.GetKey(KeyCode.D))
         {
@@ -79,13 +93,30 @@ public class Movement : MonoBehaviour
         
     }
 
-    public void ComboAttack1Transition() {
-        if(numClicks >= 2)
-            animator.SetTrigger("attack2");
+    void OnAttack() {
+        isAttacking = true;
+        lastClickTime = Time.time;
+        numClicks++;
+
+        numClicks = Mathf.Clamp(numClicks, 0, 3);   
+
+        if (numClicks == 1) {
+            animator.SetBool("attack1", true);
+        }
+
+
+        if (numClicks >= 2 && animator.GetCurrentAnimatorStateInfo(0).normalizedTime > 0.7f && animator.GetCurrentAnimatorStateInfo(0).IsName("attack1")) {
+            animator.SetBool("attack1", false);
+            animator.SetBool("attack2", true);
+        }
+
+        if (numClicks >= 3 && animator.GetCurrentAnimatorStateInfo(0).normalizedTime > 0.7f && animator.GetCurrentAnimatorStateInfo(0).IsName("attack2")) {
+            animator.SetBool("attack2", false);
+            animator.SetBool("attack3", true);
+        }
     }
-    public void ComboAttack2Transition() {
-        if(numClicks >= 3)
-            animator.SetTrigger("attack3");
+
+    IEnumerator Wait(float seconds) {
+        yield return new WaitForSeconds(seconds);
     }
-    
 }
